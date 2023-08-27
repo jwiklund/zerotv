@@ -1,3 +1,9 @@
 [submodule "cloudflared"]
 	path = cloudflared
 	url = git@github.com:jwiklund/cloudflared.git
+[submodule "pi-wifi"]
+	path = pi-wifi
+	url = git@github.com:muka/pi-wifi.git
+[submodule "go-bluetooth"]
+	path = go-bluetooth
+	url = git@github.com:muka/go-bluetooth.git
