@@ -1,0 +1,3 @@
+[submodule "cloudflared"]
+	path = cloudflared
+	url = git@github.com:jwiklund/cloudflared.git

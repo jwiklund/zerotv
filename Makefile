@@ -10,7 +10,22 @@ ifeq ($(origin .RECIPEPREFIX), undefined)
 endif
 .RECIPEPREFIX = >
 
+FILES=$(shell find . -name "*.go")
+
 all: zerotv
 
-zerotv: zerotv.go
-> env GOARCH=arm GOARM=5 GOOS=linux CGO_ENABLED=0 go build -o zerotv hello.go
+clean:
+> rm zerotv
+
+zerotv: $(FILES)
+> env GOARCH=arm GOARM=6 GOOS=linux CGO_ENABLED=0 go build -o zerotv zerotv.go
+
+dist: zerotv
+> scp zerotv zerotv:
+
+.PHONY: cloudflared
+cloudflared:
+> pushd cloudflared ; rm -f built_artifacts/* ; ./build-packages.sh
+
+dist-cloudflared:
+> scp cloudflared/built_artifacts/*.deb zerotv:
