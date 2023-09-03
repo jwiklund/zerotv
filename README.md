@@ -4,10 +4,7 @@ Config for pi zero w
 
 ## Configuration
 
-### Web page
-Expose public/index.html to server behind https.
-
-### Install utils
+### Install tools
 
 ```bash
 make cloudflared
@@ -27,4 +24,33 @@ Identity=unix-group:adm
 Action=org.freedesktop.NetworkManager.network-control
 ResultAny=yes
 EOF
+
+sudo systemctl restart polkit
 ```
+
+### Install pi-wifi service
+
+```bash
+cat | sudo tee /etc/systemd/system/pi-wifi.service <<EOF
+system/pi-wifi.service
+[Unit]
+Description=pi-wifi
+After=bluetooth.target
+
+[Service]
+ExecStart=/home/$USER/pi-wifi/pi-wifi server
+WorkingDirectory=/home/$USER/pi-wifi
+User=$USER
+Group=adm
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+sudo systemctl daemon-reload
+sudo systemctl enable pi-wifi
+sudo systemctl start pi-wifi
+```
+
+### Web page
+Expose public/index.html to a server behind https.
