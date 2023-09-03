@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Bluetooth</title>
+  <script type="text/javascript">
+    const config = {
+      ble: {
+        filters: [
+          {
+            name: "pi-wifi",
+          }
+        ],
+        serviceUUID: 0x12342233
+      }
+    }
+
+    function setError(errstr) {
+      document.getElementById("error").innerText = errstr
+    }
+
+    const showContent = (id) => {
+      document.getElementById(id).classList.remove("hidden")
+    }
+
+    function bluetoothService() {
+      if (!document.bleService) {
+        document.bleService = navigator.bluetooth.requestDevice({
+        filters: config.ble.filters,
+        optionalServices: [config.ble.serviceUUID ]
+        })
+          .then((device) => {
+            console.log("device", device)
+            document.getElementById("device").innerHTML = `Device selected: <b>${device.name}</b> (${device.id})`
+            return device.gatt.connect()
+          })
+          .then(server => server.getPrimaryService(config.ble.serviceUUID))
+      }
+      return document.bleService
+    }
+
+    function bluetoothAps() {
+      bluetoothService()
+        .then(service => service.getCharacteristic(0x12344455))
+        .then(characteristic => characteristic.readValue())
+        .then(value => {
+          var str = new TextDecoder().decode(value)
+          var aps = str.split("\n")
+            .filter(s => s.indexOf(";") != -1)
+            .map(s => {
+              console.log(s)
+              var r = Object()
+              r.ssid = s.split(";")[0]
+              r.strength = parseFloat(s.split(";")[1])
+              return r
+            })
+            .sort((a,b) => a.strength < b.strength ? 1 : -1)
+            .map(({ssid,strength}) => `<li>${ssid} (${strength}db)</li>`)
+          document.getElementById("aplist").innerHTML = aps
+          document.getElementById("listap").classList.remove("hidden")
+          
+        })
+        .catch(error => {
+          console.log(error)
+          document.getElementById("error").innerHTML = error.message
+        })
+    }
+
+    function bluetoothStatus() {
+      bluetoothService()
+        .then(service => service.getCharacteristic(0x12343344))
+        .then(characteristic => characteristic.readValue())
+        .then(value => {
+          var str = new TextDecoder().decode(value)
+          document.getElementById("connStatus").innerHTML = str
+          document.getElementById("status").classList.remove("hidden")
+        })
+        .catch(error => {
+          console.log(error)
+          document.getElementById("error").innerHTML = error.message
+        })
+    }
+
+    const handlers = {
+      bluetooth: function() {},
+      listap: bluetoothAps,
+      status: bluetoothStatus,
+    }
+    
+    function onClick(ctx) {
+      setError("")
+      showContent(ctx)
+      handlers[ctx]()
+      return false
+    }
+
+    function onConnect(ssid, passwd) {
+      setError("")
+      // https://github.com/zxing/zxing/wiki/Barcode-Contents#wi-fi-network-config-android-ios-11
+      // WIFI:T:WPA;S:mynetwork;P:mypass;;
+      var connectStr = "WIFI:T:WPA;S:" + ssid + ";P:" + passwd + ";H:false;;"
+      var connectValue = new TextEncoder().encode(connectStr)
+      bluetoothService()
+        .then(service => service.getCharacteristic(0x12343344))
+        .then(characteristic => characteristic.writeValue(connectValue))
+        .then(x => {
+          document.getElementById("error").innerHTML = "done"
+        })
+        .catch(error => {
+          console.log(error)
+          document.getElementById("error").innerHTML = error.message
+        })   
+    }
+
+  </script>
+  <style>
+    body {
+      padding: 1em;
+      font: 1.4em sans-serif;
+    }
+
+    .hidden {
+      display: none;
+    }
+
+    #error {
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="menu">
+    Connect with
+    <a href="#" onclick="onClick('bluetooth')">Bluetooth</a>
+    &nbsp; &nbsp;
+    <a href="#" onclick="onClick('status')">Connection Status</a>
+    &nbsp;
+    <a href="#" onclick="onClick('listap')">List Access Points</a>
+  </div>
+
+  <div id="listap" class="content hidden">
+    <h1>Access points</h1>
+    <ul id="aplist"></ul>
+  </div>
+
+  <div id="status" class="content hidden">
+    <h1>Connection status</h1>
+    <ul id="connStatus"></ul>
+  </div>
+
+  <div id="bluetooth" class="content hidden">
+    <h1>Connect</h1>
+    <form>
+      AP <input id="ap"> <br/>
+      Password <input id="passwd"> <br/>
+      <button id="connect" onClick="onConnect(document.forms[0].ap.value, document.forms[0].passwd.value)">Connect</button>
+    </form>
+    <div id="device"></div>
+  </div>
+
+  <div id="error"></div>
+
+</body>
+
+</html>
