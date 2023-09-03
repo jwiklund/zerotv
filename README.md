@@ -12,6 +12,8 @@ make dist-cloudflared
 
 make pi-wifi
 make dist-pi-wifi
+
+scp public/index.html $http:/opt/pi-wifi
 ```
 
 ### Enable WIFI Configuration
@@ -53,4 +55,22 @@ sudo systemctl start pi-wifi
 ```
 
 ### Web page
+
 Expose public/index.html to a server behind https.
+
+```bash
+cat > sudo tee /etc/nginx/sites-available/$host <<EOF
+server {
+       listen 80;
+
+       server_name $host;
+
+       root /opt/pi-wifi;
+
+       location / {
+           try_files \$uri \$uri/ /index.html;
+       }
+}
+EOF
+sudo nginx -t && sudo nging -r
+```
